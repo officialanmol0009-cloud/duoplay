@@ -23,7 +23,7 @@ const firebaseConfig = {
   authDomain: "duo-play0009.firebaseapp.com",
 
   // Copy this exact value from your currently working app.js.
-  databaseURL: "PASTE_YOUR_EXISTING_DATABASE_URL_HERE",
+  databaseURL: "https://duo-play0009-default-rtdb.firebaseio.com/",
 
   projectId: "duo-play0009",
   storageBucket: "duo-play0009.firebasestorage.app",
