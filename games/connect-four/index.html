@@ -1,67 +1,55 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Connect Four</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="app.js" charset="utf-8"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="theme-color" content="#090a12">
+  <title>Connect Four | DuoPlay</title>
+
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
 </head>
+
 <body>
-  <h3>The current Player is: Player <span id="current-player">1</span></h3>
-  <h3 id="result"></h3>
+  <header class="topbar">
+    <a class="logo" href="/">✦ DuoPlay</a>
+    <span class="badge">PRIVATE ARCADE ❤️</span>
+  </header>
 
-  <div class="grid">
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-    <div class="taken"></div>
-    <div class="taken"></div>
-    <div class="taken"></div>
-    <div class="taken"></div>
-    <div class="taken"></div>
-    <div class="taken"></div>
-    <div class="taken"></div>
-  </div>
+  <main class="game-container">
+    <section class="game-card">
+      <p class="eyebrow">DUOPLAY ORIGINAL ARCADE</p>
 
+      <h1>Connect <span>Four.</span></h1>
+
+      <p class="subtitle">
+        Four in a row. One winner. Play together.
+      </p>
+
+      <div class="player-panel">
+        <span class="player-dot"></span>
+        <p>
+          Current turn
+          <strong>Player <span id="current-player">1</span></strong>
+        </p>
+      </div>
+
+      <div id="result" class="result" aria-live="polite">
+        Connecting to your room...
+      </div>
+
+      <!-- Firebase app.js creates the 42 cells here -->
+      <div class="grid" aria-label="Connect Four game board"></div>
+
+      <p class="game-hint">
+        Choose a column to drop your disc.
+      </p>
+
+      <a class="back-link" href="/">← Back to DuoPlay</a>
+    </section>
+  </main>
+
+  <footer>Made for two. Built with love. ❤️</footer>
 </body>
 </html>
