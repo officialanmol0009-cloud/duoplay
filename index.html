@@ -15,17 +15,54 @@
   </header>
 
   <main>
+    <!-- HOME SCREEN -->
     <section id="homeScreen" class="card">
       <p class="eyebrow">YOUR LITTLE ARCADE</p>
 
       <h1>Play together.<br><span>Anywhere.</span></h1>
 
       <p class="subtitle">
-        Invite your favourite person and let the games begin.
+        Pick a game, invite your favourite person, and have fun.
       </p>
 
-      <label for="nickname">Choose your nickname</label>
-      <input id="nickname" maxlength="18" placeholder="Your name">
+      <h3 class="section-title">Choose your game</h3>
+
+      <div id="gamePicker" class="games">
+        <button class="game-card selected" data-game="tictactoe">
+          <span>⭕</span>
+          <div>
+            <strong>Tic-Tac-Toe</strong>
+            <small>Quick 1 vs 1 game</small>
+          </div>
+          <span class="game-check">✓</span>
+        </button>
+
+        <button class="game-card" data-game="connectfour">
+          <span>🔴</span>
+          <div>
+            <strong>Connect Four</strong>
+            <small>Connect four to win</small>
+          </div>
+          <span class="game-check"></span>
+        </button>
+
+        <button class="game-card" data-game="snakes">
+          <span>🐍</span>
+          <div>
+            <strong>Snakes & Ladders</strong>
+            <small>Roll the dice and race</small>
+          </div>
+          <span class="game-check"></span>
+        </button>
+      </div>
+
+      <label for="nickname">Your nickname</label>
+      <input
+        id="nickname"
+        maxlength="18"
+        placeholder="Enter your name"
+        autocomplete="nickname"
+      >
 
       <button id="createBtn" class="primary" disabled>
         Create a room ↗
@@ -34,67 +71,60 @@
       <div class="separator">OR JOIN YOUR PARTNER</div>
 
       <div class="join-row">
-        <input id="roomInput" maxlength="6" placeholder="ROOM CODE">
+        <input
+          id="roomInput"
+          maxlength="6"
+          placeholder="ROOM CODE"
+          autocomplete="off"
+        >
         <button id="joinBtn" disabled>Join</button>
       </div>
 
       <p id="homeMessage" class="message">
         Connecting to DuoPlay...
       </p>
-
-      <div class="games">
-        <div class="game-card">
-          <span>🎲</span>
-          <div><strong>Ludo</strong><small>Coming soon</small></div>
-        </div>
-
-        <div class="game-card">
-          <span>🐍</span>
-          <div><strong>Snakes & Ladders</strong><small>Coming soon</small></div>
-        </div>
-
-        <div class="game-card">
-          <span>⭕</span>
-          <div><strong>Tic-Tac-Toe</strong><small>Available now</small></div>
-        </div>
-      </div>
     </section>
 
+    <!-- GAME ROOM -->
     <section id="gameScreen" class="card hidden">
       <div class="room-header">
         <div>
           <p class="eyebrow">YOUR PRIVATE ROOM</p>
-          <h2>Room <span id="roomCodeLabel">------</span></h2>
+          <h2 id="gameTitle">Tic-Tac-Toe</h2>
+          <p class="room-code">
+            ROOM <span id="roomCodeLabel">------</span>
+          </p>
         </div>
 
-        <button id="copyBtn" class="secondary">Invite ↗</button>
+        <button id="copyBtn" class="secondary">
+          Invite ↗
+        </button>
       </div>
 
       <div id="playersRow" class="players"></div>
 
       <div id="gameStatus" class="status">
-        Waiting for another player...
+        Waiting for your partner...
       </div>
 
-      <div id="board" class="board">
-        <button class="cell" data-index="0"></button>
-        <button class="cell" data-index="1"></button>
-        <button class="cell" data-index="2"></button>
-        <button class="cell" data-index="3"></button>
-        <button class="cell" data-index="4"></button>
-        <button class="cell" data-index="5"></button>
-        <button class="cell" data-index="6"></button>
-        <button class="cell" data-index="7"></button>
-        <button class="cell" data-index="8"></button>
-      </div>
+      <!-- Game-specific buttons will appear here -->
+      <div id="gameControls"></div>
 
-      <p class="game-hint">
-        Get three marks in a row to win. ❤️
+      <!-- JavaScript builds the appropriate board here -->
+      <div id="board" class="board"></div>
+
+      <p id="gameHint" class="game-hint">
+        Have fun together! ❤️
       </p>
 
       <div class="game-actions">
-        <button id="restartBtn" class="secondary">Play again</button>
-        <button id="backBtn" class="secondary">Leave room</button>
+        <button id="restartBtn" class="secondary">
+          Play again
+        </button>
+
+        <button id="backBtn" class="secondary">
+          Leave room
+        </button>
       </div>
     </section>
   </main>
