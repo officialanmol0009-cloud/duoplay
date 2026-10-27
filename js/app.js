@@ -17,14 +17,11 @@ import {
   runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
-// 1. FIREBASE CONFIGURATION
+// 1. DUOPLAY FIREBASE CONFIGURATION
 const firebaseConfig = {
   apiKey: "AIzaSyB1eBZqEE1XSAaeAlTl-x9b0I2F03JsOpI",
   authDomain: "duo-play0009.firebaseapp.com",
-
-  // Copy this exact value from your currently working app.js.
-  databaseURL: "https://duo-play0009-default-rtdb.firebaseio.com/",
-
+  databaseURL: "https://duo-play0009-default-rtdb.firebaseio.com",
   projectId: "duo-play0009",
   storageBucket: "duo-play0009.firebasestorage.app",
   messagingSenderId: "1026056502866",
@@ -56,70 +53,80 @@ const GAME_NAMES = {
   snakes: "Snakes & Ladders"
 };
 
+const LADDERS = {
+  3: 22, 5: 8, 11: 26, 20: 29,
+  27: 56, 36: 44, 51: 67, 71: 91, 80: 100
+};
+
+const SNAKES = {
+  17: 4, 19: 7, 21: 9, 43: 34,
+  50: 32, 54: 34, 62: 18, 64: 60,
+  87: 24, 95: 75, 98: 79
+};
+
 let me = null;
 let selectedGame = "tictactoe";
 let roomCode = "";
 let roomData = null;
 let unsubscribeRoom = null;
 let moving = false;
+let signingIn = false;
 
-// 2. SNAKES & LADDERS BOARD
-const LADDERS = {
-  3: 22,
-  5: 8,
-  11: 26,
-  20: 29,
-  27: 56,
-  36: 44,
-  51: 67,
-  71: 91,
-  80: 100
-};
+// 2. GAME SELECTION
+document.querySelectorAll(".game-card").forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedGame = button.dataset.game;
 
-const SNAKES = {
-  17: 4,
-  19: 7,
-  21: 9,
-  43: 34,
-  50: 32,
-  54: 34,
-  62: 18,
-  64: 60,
-  87: 24,
-  95: 75,
-  98: 79
-};
+    document.querySelectorAll(".game-card").forEach((card) => {
+      const selected = card === button;
 
-// 3. GAME STATE
-function emptyState(game) {
-  if (game === "connectfour") {
-    return {
-      board: Array(42).fill(""),
-      turn: "X",
-      winner: null
-    };
-  }
+      card.classList.toggle("selected", selected);
+      card.querySelector(".game-check").textContent =
+        selected ? "✓" : "";
+    });
+  });
+});
 
-  if (game === "snakes") {
-    return {
-      positions: { X: 0, O: 0 },
-      turn: "X",
-      winner: null,
-      lastRoll: 0
-    };
-  }
-
-  return {
-    board: Array(9).fill(""),
-    turn: "X",
-    winner: null
-  };
+// 3. ANONYMOUS AUTHENTICATION
+function showError(error) {
+  console.error(error);
+  homeMessage.textContent =
+    "Error: " + (error?.message || "Please try again.");
 }
 
-function gameTitle(game) {
-  return GAME_NAMES[game] || GAME_NAMES.tictactoe;
+onAuthStateChanged(
+  auth,
+  (user) => {
+    if (user) {
+      me = user;
+      createBtn.disabled = false;
+      joinBtn.disabled = false;
+      homeMessage.textContent =
+        "Connected! Ready to play together. ❤️";
+      return;
+    }
+
+    if (!signingIn) {
+      signingIn = true;
+
+      signInAnonymously(auth)
+        .catch(showError)
+        .finally(() => {
+          signingIn = false;
+        });
+    }
+  },
+  showError
+);
+
+// Fill the room field when someone opens an invitation.
+const inviteCode = new URLSearchParams(location.search).get("room");
+
+if (inviteCode) {
+  roomInput.value = inviteCode.toUpperCase();
 }
 
+// 4. HELPERS
 function playerName() {
   return nickname.value.trim().slice(0, 18) || "Player";
 }
@@ -135,49 +142,87 @@ function newCode() {
     .join("");
 }
 
-function showError(error) {
-  console.error(error);
+function emptyState(game) {
+  if (game === "connectfour") {
+    return {
+      board: Array(42).fill(""),
+      turn: "X",
+      winner: null
+    };
+  }
 
-  homeMessage.textContent =
-    "Error: " + (error?.message || "Please try again.");
+  if (game === "snakes") {
+    return {
+      positions: { X: 0, O: 0 },
+      turn: "X",
+      winner: null,
+      lastRoll: 1
+    };
+  }
+
+  return {
+    board: Array(9).fill(""),
+    turn: "X",
+    winner: null
+  };
 }
 
-// 4. SELECT THE GAME
-document.querySelectorAll(".game-card").forEach((button) => {
-  button.addEventListener("click", () => {
-    selectedGame = button.dataset.game;
+function gameTitle(game) {
+  return GAME_NAMES[game] || GAME_NAMES.tictactoe;
+}
 
-    document.querySelectorAll(".game-card").forEach((card) => {
-      const selected = card === button;
+// 5. OPEN THE CORRECT GAME
+function openRoom(code, game) {
+  // Connect Four uses the downloaded GitHub game.
+  if (game === "connectfour") {
+    const url = new URL(
+      "/games/connect-four/index.html",
+      window.location.origin
+    );
 
-      card.classList.toggle("selected", selected);
-      card.querySelector(".game-check").textContent =
-        selected ? "✓" : "";
-    });
-  });
-});
+    url.searchParams.set("room", code);
 
-// 5. ANONYMOUS AUTHENTICATION
-onAuthStateChanged(
-  auth,
-  (user) => {
-    if (user) {
-      me = user;
-      createBtn.disabled = false;
-      joinBtn.disabled = false;
-      homeMessage.textContent = "Connected! Let's play together. ❤️";
-    } else {
-      signInAnonymously(auth).catch(showError);
+    window.location.href = url.href;
+    return;
+  }
+
+  // Tic-Tac-Toe and Snakes & Ladders stay in DuoPlay.
+  roomCode = code;
+
+  homeScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+
+  if (unsubscribeRoom) unsubscribeRoom();
+
+  history.replaceState(
+    null,
+    "",
+    `${location.pathname}?room=${code}`
+  );
+
+  unsubscribeRoom = onValue(
+    ref(db, `rooms/${code}`),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        roomData = null;
+        $("gameStatus").textContent = "This room has closed.";
+        return;
+      }
+
+      roomData = snapshot.val();
+
+      if (roomData.game === "connectfour") {
+        openRoom(code, "connectfour");
+        return;
+      }
+
+      renderRoom();
+    },
+    (error) => {
+      $("gameStatus").textContent =
+        "Sync error: " + error.message;
     }
-  },
-  showError
-);
-
-const inviteCode =
-  new URLSearchParams(location.search).get("room");
-
-if (inviteCode) {
-  roomInput.value = inviteCode.toUpperCase();
+  );
 }
 
 // 6. CREATE A ROOM
@@ -192,7 +237,10 @@ async function createRoom() {
 
     for (let attempt = 0; attempt < 5; attempt++) {
       const candidate = newCode();
-      const snapshot = await get(ref(db, `rooms/${candidate}`));
+
+      const snapshot = await get(
+        ref(db, `rooms/${candidate}`)
+      );
 
       if (!snapshot.exists()) {
         code = candidate;
@@ -201,10 +249,10 @@ async function createRoom() {
     }
 
     if (!code) {
-      throw new Error("Could not generate a room. Try again.");
+      throw new Error("Could not create a room. Try again.");
     }
 
-    const initial = {
+    await set(ref(db, `rooms/${code}`), {
       hostUid: me.uid,
       game: selectedGame,
       players: {
@@ -214,11 +262,9 @@ async function createRoom() {
         }
       },
       state: emptyState(selectedGame)
-    };
+    });
 
-    await set(ref(db, `rooms/${code}`), initial);
-
-    openRoom(code);
+    openRoom(code, selectedGame);
   } catch (error) {
     showError(error);
   } finally {
@@ -234,7 +280,8 @@ async function joinRoom() {
   const code = roomInput.value.trim().toUpperCase();
 
   if (!/^[A-Z0-9]{6}$/.test(code)) {
-    homeMessage.textContent = "Enter a valid six-character room code.";
+    homeMessage.textContent =
+      "Enter a valid six-character room code.";
     return;
   }
 
@@ -242,22 +289,27 @@ async function joinRoom() {
   joinBtn.disabled = true;
 
   try {
-    const snapshot = await get(ref(db, `rooms/${code}`));
+    const roomRef = ref(db, `rooms/${code}`);
+    const snapshot = await get(roomRef);
 
     if (!snapshot.exists()) {
-      throw new Error("Room not found. Check the invitation code.");
+      throw new Error("Room not found. Check the room code.");
     }
 
     const room = snapshot.val();
     const players = room.players || {};
 
+    if (!GAME_NAMES[room.game]) {
+      throw new Error("This room has an unknown game.");
+    }
+
     if (players[me.uid]) {
-      openRoom(code);
+      openRoom(code, room.game);
       return;
     }
 
     if (Object.keys(players).length >= 2) {
-      throw new Error("This room already has two players.");
+      throw new Error("This room is full.");
     }
 
     const symbol = Object.values(players)
@@ -271,7 +323,7 @@ async function joinRoom() {
       }
     );
 
-    openRoom(code);
+    openRoom(code, room.game);
   } catch (error) {
     showError(error);
   } finally {
@@ -280,45 +332,7 @@ async function joinRoom() {
   }
 }
 
-// 8. OPEN A ROOM
-function openRoom(code) {
-  roomCode = code;
-
-  homeScreen.classList.add("hidden");
-  gameScreen.classList.remove("hidden");
-
-  $("roomCodeLabel").textContent = code;
-
-  history.replaceState(
-    null,
-    "",
-    `${location.pathname}?room=${code}`
-  );
-
-  if (unsubscribeRoom) unsubscribeRoom();
-
-  unsubscribeRoom = onValue(
-    ref(db, `rooms/${code}`),
-    (snapshot) => {
-      if (!snapshot.exists()) {
-        roomData = null;
-        $("gameStatus").textContent = "This room has been closed.";
-        boardElement.replaceChildren();
-        controlsElement.replaceChildren();
-        return;
-      }
-
-      roomData = snapshot.val();
-      renderRoom();
-    },
-    (error) => {
-      $("gameStatus").textContent =
-        "Could not synchronize the room: " + error.message;
-    }
-  );
-}
-
-// 9. TIC-TAC-TOE WIN CHECK
+// 8. GAME RESULT CHECKS
 function tttWinner(board) {
   const lines = [
     [0, 1, 2], [3, 4, 5],
@@ -328,7 +342,8 @@ function tttWinner(board) {
   ];
 
   for (const [a, b, c] of lines) {
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+    if (board[a] && board[a] === board[b] &&
+        board[b] === board[c]) {
       return board[a];
     }
   }
@@ -336,43 +351,7 @@ function tttWinner(board) {
   return null;
 }
 
-// 10. CONNECT FOUR WIN CHECK
-function connectFourWinner(board, row, col, symbol) {
-  const directions = [
-    [0, 1],
-    [1, 0],
-    [1, 1],
-    [1, -1]
-  ];
-
-  for (const [dr, dc] of directions) {
-    let count = 1;
-
-    for (const sign of [-1, 1]) {
-      let r = row + dr * sign;
-      let c = col + dc * sign;
-
-      while (
-        r >= 0 && r < 6 &&
-        c >= 0 && c < 7 &&
-        board[r * 7 + c] === symbol
-      ) {
-        count++;
-        r += dr * sign;
-        c += dc * sign;
-      }
-    }
-
-    if (count >= 4) return symbol;
-  }
-
-  return null;
-}
-
-// 11. GAME STATUS
-function calculateStatus(game, state, players) {
-  if (!state) return { winner: null, draw: false };
-
+function gameResult(game, state) {
   let winner = state.winner || null;
   let draw = false;
 
@@ -382,25 +361,14 @@ function calculateStatus(game, state, players) {
     draw = !winner && board.every(Boolean);
   }
 
-  if (game === "connectfour") {
-    const board = state.board || Array(42).fill("");
-    draw = !winner && board.every(Boolean);
-  }
-
-  const winningPlayer = players.find((player) => player.symbol === winner);
-
-  return {
-    winner,
-    winningPlayer,
-    draw
-  };
+  return { winner, draw };
 }
 
-// 12. RENDER THE ROOM
+// 9. RENDER ROOM
 function renderRoom() {
   if (!roomData || !me) return;
 
-  const game = roomData.game || "tictactoe";
+  const game = roomData.game;
   const state = roomData.state || emptyState(game);
 
   const players = Object.entries(roomData.players || {})
@@ -409,54 +377,56 @@ function renderRoom() {
 
   const mine = players.find((player) => player.uid === me.uid);
   const ready = players.length === 2;
-  const result = calculateStatus(game, state, players);
 
   $("gameTitle").textContent = gameTitle(game);
 
   const playersRow = $("playersRow");
   playersRow.replaceChildren();
 
-  for (const player of players) {
+  players.forEach((player) => {
     const chip = document.createElement("div");
     chip.className = "player-chip";
     chip.textContent =
       `${player.symbol} · ${player.name}` +
       (player.uid === me.uid ? " (You)" : "");
-
     playersRow.appendChild(chip);
-  }
+  });
+
+  const result = gameResult(game, state);
 
   if (!mine) {
-    $("gameStatus").textContent = "You are not a player in this room.";
+    $("gameStatus").textContent = "You are not in this room.";
   } else if (!ready) {
     $("gameStatus").textContent =
-      "Waiting for your partner. Share the invitation link! ❤️";
+      "Waiting for your partner. Share the room code! ❤️";
   } else if (result.winner) {
+    const winningPlayer = players.find(
+      (player) => player.symbol === result.winner
+    );
+
     $("gameStatus").textContent =
-      `${result.winningPlayer?.name || result.winner} wins! 🎉`;
+      `${winningPlayer?.name || result.winner} wins! 🎉`;
   } else if (result.draw) {
-    $("gameStatus").textContent = "It's a draw! Play another round.";
+    $("gameStatus").textContent = "It's a draw! Play again.";
+  } else if (mine.symbol === state.turn) {
+    $("gameStatus").textContent = "Your turn! ❤️";
   } else {
-    const turnPlayer = players.find(
+    const nextPlayer = players.find(
       (player) => player.symbol === state.turn
     );
 
     $("gameStatus").textContent =
-      mine.symbol === state.turn
-        ? "Your turn! ❤️"
-        : `Waiting for ${turnPlayer?.name || "your partner"}...`;
+      `Waiting for ${nextPlayer?.name || "your partner"}...`;
   }
 
-  if (game === "tictactoe") {
-    renderTicTacToe(state, ready, mine, result);
-  } else if (game === "connectfour") {
-    renderConnectFour(state, ready, mine, result);
-  } else if (game === "snakes") {
+  if (game === "snakes") {
     renderSnakes(state, ready, mine, result);
+  } else {
+    renderTicTacToe(state, ready, mine, result);
   }
 }
 
-// 13. TIC-TAC-TOE BOARD
+// 10. TIC-TAC-TOE BOARD
 function renderTicTacToe(state, ready, mine, result) {
   const board = state.board || Array(9).fill("");
 
@@ -467,79 +437,26 @@ function renderTicTacToe(state, ready, mine, result) {
   $("gameHint").textContent =
     "Get three marks in a row to win. ❤️";
 
-  for (let i = 0; i < 9; i++) {
+  board.forEach((symbol, index) => {
     const cell = document.createElement("button");
-
     cell.className = "cell";
-    cell.textContent = board[i] || "·";
+    cell.textContent = symbol || "·";
 
-    if (board[i] === "X") cell.classList.add("x");
-    if (board[i] === "O") cell.classList.add("o");
+    if (symbol === "X") cell.classList.add("x");
+    if (symbol === "O") cell.classList.add("o");
 
     cell.disabled =
-      moving ||
-      !ready ||
-      !mine ||
+      moving || !ready || !mine ||
       mine.symbol !== state.turn ||
-      Boolean(board[i]) ||
-      Boolean(result.winner) ||
-      result.draw;
+      Boolean(symbol) || result.winner || result.draw;
 
-    cell.addEventListener("click", () => playTicTacToe(i));
+    cell.addEventListener("click", () => playTicTacToe(index));
 
     boardElement.appendChild(cell);
-  }
+  });
 }
 
-// 14. CONNECT FOUR BOARD
-function renderConnectFour(state, ready, mine, result) {
-  const board = state.board || Array(42).fill("");
-
-  boardElement.className = "board connect-grid";
-  boardElement.replaceChildren();
-  controlsElement.replaceChildren();
-
-  $("gameHint").textContent =
-    "Drop a disc into a column. Connect four discs to win!";
-
-  for (let col = 0; col < 7; col++) {
-    const column = document.createElement("button");
-
-    column.className = "connect-column";
-    column.setAttribute("aria-label", `Drop disc in column ${col + 1}`);
-
-    column.disabled =
-      moving ||
-      !ready ||
-      !mine ||
-      mine.symbol !== state.turn ||
-      Boolean(result.winner) ||
-      result.draw ||
-      board[col] !== "" &&
-        board[7 + col] !== "" &&
-        board[14 + col] !== "" &&
-        board[21 + col] !== "" &&
-        board[28 + col] !== "" &&
-        board[35 + col] !== "";
-
-    for (let row = 0; row < 6; row++) {
-      const slot = document.createElement("span");
-      const value = board[row * 7 + col];
-
-      slot.className = "connect-slot";
-
-      if (value === "X") slot.classList.add("red");
-      if (value === "O") slot.classList.add("yellow");
-
-      column.appendChild(slot);
-    }
-
-    column.addEventListener("click", () => playConnectFour(col));
-    boardElement.appendChild(column);
-  }
-}
-
-// 15. SNAKES & LADDERS BOARD
+// 11. SNAKES & LADDERS BOARD
 function renderSnakes(state, ready, mine, result) {
   const positions = state.positions || { X: 0, O: 0 };
 
@@ -548,15 +465,13 @@ function renderSnakes(state, ready, mine, result) {
   controlsElement.replaceChildren();
 
   $("gameHint").textContent =
-    `🔴 Player X: ${positions.X} / 100   ·   🔵 Player O: ${positions.O} / 100`;
+    `🔴 Player X: ${positions.X}/100 · 🔵 Player O: ${positions.O}/100`;
 
-  // Visual rows are generated from top to bottom.
-  // Numbering snakes back and forth across every row.
-  for (let visualRow = 9; visualRow >= 0; visualRow--) {
+  for (let row = 9; row >= 0; row--) {
     for (let col = 0; col < 10; col++) {
-      const number = visualRow % 2 === 0
-        ? visualRow * 10 + col + 1
-        : visualRow * 10 + (10 - col);
+      const number = row % 2 === 0
+        ? row * 10 + col + 1
+        : row * 10 + 10 - col;
 
       const tile = document.createElement("div");
       tile.className = "snake-tile";
@@ -569,25 +484,17 @@ function renderSnakes(state, ready, mine, result) {
       decoration.className = "tile-decoration";
 
       const tokens = [];
-
       if (positions.X === number) tokens.push("🔴");
       if (positions.O === number) tokens.push("🔵");
 
-      if (tokens.length) {
-        decoration.textContent = tokens.join("");
-      } else if (LADDERS[number]) {
-        decoration.textContent = "🪜";
-      } else if (SNAKES[number]) {
-        decoration.textContent = "🐍";
-      }
+      decoration.textContent = tokens.length
+        ? tokens.join("")
+        : LADDERS[number] ? "🪜"
+        : SNAKES[number] ? "🐍" : "";
 
       if (positions.X === number) tile.classList.add("player-one");
       if (positions.O === number) tile.classList.add("player-two");
-      if (number === 1 || number === 100) {
-        tile.classList.add("special-start");
-      }
 
-      tile.title = `Square ${number}`;
       tile.append(numberLabel, decoration);
       boardElement.appendChild(tile);
     }
@@ -598,36 +505,26 @@ function renderSnakes(state, ready, mine, result) {
 
   const dice = document.createElement("div");
   dice.className = "dice-face";
-  dice.textContent = diceSymbol(state.lastRoll || 1);
+  dice.textContent =
+    ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][
+      (state.lastRoll || 1) - 1
+    ];
 
-  const rollButton = document.createElement("button");
-  rollButton.className = "dice-button";
-  rollButton.textContent = moving ? "Rolling..." : "🎲 Roll dice";
+  const roll = document.createElement("button");
+  roll.className = "dice-button";
+  roll.textContent = "🎲 Roll dice";
 
-  rollButton.disabled =
-    moving ||
-    !ready ||
-    !mine ||
-    mine.symbol !== state.turn ||
-    Boolean(result.winner);
+  roll.disabled =
+    moving || !ready || !mine ||
+    mine.symbol !== state.turn || Boolean(result.winner);
 
-  rollButton.addEventListener("click", rollSnakesDice);
+  roll.addEventListener("click", rollDice);
 
-  controls.append(dice, rollButton);
-  controlsElement.replaceChildren(controls);
-
-  const legend = document.createElement("div");
-  legend.className = "snake-legend";
-  legend.textContent = "🪜 Ladders move you up · 🐍 Snakes send you down";
-
-  controlsElement.appendChild(legend);
+  controls.append(dice, roll);
+  controlsElement.appendChild(controls);
 }
 
-function diceSymbol(number) {
-  return ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][number - 1] || "⚀";
-}
-
-// 16. MAKE A MOVE SAFELY THROUGH A TRANSACTION
+// 12. SAFE MULTIPLAYER STATE UPDATES
 async function transactMove(updater) {
   if (!me || !roomCode || !roomData || moving) return;
 
@@ -635,15 +532,15 @@ async function transactMove(updater) {
   renderRoom();
 
   try {
-    const result = await runTransaction(
+    const transaction = await runTransaction(
       ref(db, `rooms/${roomCode}/state`),
       updater,
       { applyLocally: false }
     );
 
-    if (!result.committed) {
+    if (!transaction.committed) {
       $("gameStatus").textContent =
-        "Move not accepted. Please check whose turn it is.";
+        "Move not accepted. Please try again.";
     }
   } catch (error) {
     $("gameStatus").textContent =
@@ -654,7 +551,7 @@ async function transactMove(updater) {
   }
 }
 
-// 17. PLAY TIC-TAC-TOE
+// 13. TIC-TAC-TOE MOVE
 async function playTicTacToe(index) {
   const mine = roomData?.players?.[me?.uid];
   if (!mine) return;
@@ -675,75 +572,24 @@ async function playTicTacToe(index) {
 
     board[index] = mine.symbol;
 
-    const winner = tttWinner(board);
-
     return {
       board,
       turn: mine.symbol === "X" ? "O" : "X",
-      winner
+      winner: tttWinner(board)
     };
   });
 }
 
-// 18. PLAY CONNECT FOUR
-async function playConnectFour(col) {
+// 14. SNAKES & LADDERS DICE
+async function rollDice() {
   const mine = roomData?.players?.[me?.uid];
   if (!mine) return;
-
-  await transactMove((current) => {
-    if (!current || !Array.isArray(current.board)) return;
-
-    if (
-      current.turn !== mine.symbol ||
-      current.winner ||
-      current.board.every(Boolean)
-    ) {
-      return;
-    }
-
-    const board = [...current.board];
-
-    let targetRow = -1;
-
-    for (let row = 5; row >= 0; row--) {
-      if (!board[row * 7 + col]) {
-        targetRow = row;
-        break;
-      }
-    }
-
-    if (targetRow === -1) return;
-
-    board[targetRow * 7 + col] = mine.symbol;
-
-    const winner = connectFourWinner(
-      board,
-      targetRow,
-      col,
-      mine.symbol
-    );
-
-    return {
-      board,
-      turn: mine.symbol === "X" ? "O" : "X",
-      winner
-    };
-  });
-}
-
-// 19. ROLL THE DICE IN SNAKES & LADDERS
-async function rollSnakesDice() {
-  const mine = roomData?.players?.[me?.uid];
-  if (!mine || moving) return;
 
   const roll = Math.floor(Math.random() * 6) + 1;
 
   await transactMove((current) => {
     if (!current || !current.positions) return;
-
-    if (current.turn !== mine.symbol || current.winner) {
-      return;
-    }
+    if (current.turn !== mine.symbol || current.winner) return;
 
     const positions = {
       X: Number(current.positions.X || 0),
@@ -752,7 +598,6 @@ async function rollSnakesDice() {
 
     let next = positions[mine.symbol];
 
-    // A player must land exactly on square 100 to win.
     if (next + roll <= 100) {
       next += roll;
 
@@ -773,16 +618,14 @@ async function rollSnakesDice() {
   });
 }
 
-// 20. PLAY AGAIN
+// 15. PLAY AGAIN
 async function restartGame() {
   if (!roomCode || !me || !roomData?.players?.[me.uid]) return;
-
-  const game = roomData.game || "tictactoe";
 
   try {
     await set(
       ref(db, `rooms/${roomCode}/state`),
-      emptyState(game)
+      emptyState(roomData.game)
     );
   } catch (error) {
     $("gameStatus").textContent =
@@ -790,43 +633,43 @@ async function restartGame() {
   }
 }
 
-// 21. COPY INVITATION LINK
+// 16. COPY ROOM INVITATION
 async function copyInvite() {
-  const url =
-    `${location.origin}${location.pathname}?room=${roomCode}`;
+  const url = new URL("/", location.origin);
+  url.searchParams.set("room", roomCode);
 
   try {
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(url.href);
     copyBtn.textContent = "Copied ✓";
   } catch {
-    window.prompt("Copy this invitation link:", url);
+    window.prompt("Copy this invitation link:", url.href);
   }
 }
 
-// 22. LEAVE THE ROOM
+// 17. LEAVE THE ROOM
 async function leaveRoom() {
+  const code = roomCode;
+
   if (unsubscribeRoom) unsubscribeRoom();
+  unsubscribeRoom = null;
 
   try {
-    if (roomCode && me && roomData?.players?.[me.uid]) {
+    if (code && me && roomData?.players?.[me.uid]) {
       if (roomData.hostUid === me.uid) {
-        await remove(ref(db, `rooms/${roomCode}`));
+        await remove(ref(db, `rooms/${code}`));
       } else {
         await set(
-          ref(db, `rooms/${roomCode}/state`),
-          emptyState(roomData.game || "tictactoe")
+          ref(db, `rooms/${code}/state`),
+          emptyState(roomData.game)
         );
 
-        await remove(
-          ref(db, `rooms/${roomCode}/players/${me.uid}`)
-        );
+        await remove(ref(db, `rooms/${code}/players/${me.uid}`));
       }
     }
   } catch (error) {
     console.error("Leave room error:", error);
   }
 
-  unsubscribeRoom = null;
   roomCode = "";
   roomData = null;
   moving = false;
@@ -841,7 +684,7 @@ async function leaveRoom() {
   homeMessage.textContent = "You're connected anonymously. ❤️";
 }
 
-// 23. BUTTON EVENTS
+// 18. BUTTON EVENTS
 createBtn.addEventListener("click", createRoom);
 joinBtn.addEventListener("click", joinRoom);
 copyBtn.addEventListener("click", copyInvite);
