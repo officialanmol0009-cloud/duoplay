@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>DuoPlay — Play Together ❤️</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <header class="navbar">
+    <a class="logo" href="#">✦ DuoPlay</a>
+    <span class="badge">PRIVATE ARCADE ❤️</span>
+  </header>
+
+  <main>
+    <section id="homeScreen" class="card">
+      <p class="eyebrow">YOUR LITTLE ARCADE</p>
+
+      <h1>Play together.<br><span>Anywhere.</span></h1>
+
+      <p class="subtitle">
+        Invite your favourite person and let the games begin.
+      </p>
+
+      <label for="nickname">Choose your nickname</label>
+      <input id="nickname" maxlength="18" placeholder="Your name">
+
+      <button id="createBtn" class="primary" disabled>
+        Create a room ↗
+      </button>
+
+      <div class="separator">OR JOIN YOUR PARTNER</div>
+
+      <div class="join-row">
+        <input id="roomInput" maxlength="6" placeholder="ROOM CODE">
+        <button id="joinBtn" disabled>Join</button>
+      </div>
+
+      <p id="homeMessage" class="message">
+        Connecting to DuoPlay...
+      </p>
+
+      <div class="games">
+        <div class="game-card">
+          <span>🎲</span>
+          <div><strong>Ludo</strong><small>Coming soon</small></div>
+        </div>
+
+        <div class="game-card">
+          <span>🐍</span>
+          <div><strong>Snakes & Ladders</strong><small>Coming soon</small></div>
+        </div>
+
+        <div class="game-card">
+          <span>⭕</span>
+          <div><strong>Tic-Tac-Toe</strong><small>Available now</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="card hidden">
+      <div class="room-header">
+        <div>
+          <p class="eyebrow">YOUR PRIVATE ROOM</p>
+          <h2>Room <span id="roomCodeLabel">------</span></h2>
+        </div>
+
+        <button id="copyBtn" class="secondary">Invite ↗</button>
+      </div>
+
+      <div id="playersRow" class="players"></div>
+
+      <div id="gameStatus" class="status">
+        Waiting for another player...
+      </div>
+
+      <div id="board" class="board">
+        <button class="cell" data-index="0"></button>
+        <button class="cell" data-index="1"></button>
+        <button class="cell" data-index="2"></button>
+        <button class="cell" data-index="3"></button>
+        <button class="cell" data-index="4"></button>
+        <button class="cell" data-index="5"></button>
+        <button class="cell" data-index="6"></button>
+        <button class="cell" data-index="7"></button>
+        <button class="cell" data-index="8"></button>
+      </div>
+
+      <p class="game-hint">
+        Get three marks in a row to win. ❤️
+      </p>
+
+      <div class="game-actions">
+        <button id="restartBtn" class="secondary">Play again</button>
+        <button id="backBtn" class="secondary">Leave room</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>Made for two. Built with love. ❤️</footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
